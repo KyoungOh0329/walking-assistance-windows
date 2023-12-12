@@ -8,7 +8,7 @@ import sys
 import cv2
 import time
 import threading
-from config import configLoader
+from config import config
 from keyboard import read_key
 
 
@@ -24,9 +24,7 @@ class app:
         self.cameraStarted = False
         self.isExit = False
 
-        self.config = configLoader().getConfig()
-
-        self.messenger = messenger(self.config)
+        self.messenger = messenger(config)
 
     def str2class(self, classname):
         return getattr(sys.modules[__name__], classname)
@@ -37,7 +35,7 @@ class app:
         for service in services:
             if self.serviceObjects[service] is None:
                 self.serviceObjects[service] = self.str2class(service)(
-                    self.messenger, self.config
+                    self.messenger, config
                 )
             self.services.append(service)
 
@@ -51,16 +49,16 @@ class app:
                     self.messenger.info("Camera not started")
                     continue
 
-                if key == self.config["key"]["c"]:  # key c
+                if key == 'c':  # key c
                     self.switchService("classificator", "detector")
 
-                elif key == self.config["key"]["d"]:  # key d
+                elif key == 'd':  # key d
                     self.switchService("detector")
 
-                elif key == self.config["key"]["r"]:  # key r
+                elif key == 'r':  # key r
                     self.switchService("recognizer")
 
-                elif key == self.config["key"]["q"]:  # key q
+                elif key == 'q':  # key q
                     self.exit()
 
                 else:
@@ -73,24 +71,29 @@ class app:
 
     def main(self):
         self.messenger.info("Starting...")
-
-        self.cap = cv2.VideoCapture(self.config["camera"]["device"])
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.config["camera"]["width"])
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.config["camera"]["height"])
-        self.cameraStarted = True
+        
+        self.cap = cv2.VideoCapture(1)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 256)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 256)
+        self.cameraStarted = self.cap.isOpened()
         self.messenger.info("Camera started")
 
+        while not self.cameraStarted:
+            pass
+        
         while not self.isExit:
-            _, frame = self.cap.read()
-            cv2.imshow("Live View", frame)
-            cv2.waitKey(1)
-
-            if self.services != []:
-                for service in self.services:
-                    self.serviceObjects[service].run(frame)
-
+            ret, frame = self.cap.read()
+            if ret:
+                if self.services != []:
+                    for service in self.services:
+                        self.serviceObjects[service].run(frame)
+                        
+                cv2.imshow('Inference', frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+                
     def run(self):
-        threading.Thread(target=self.keyCapture).start()
+        threading.Thread(target=self.keyCapture, daemon=True).start()
         self.main()
 
     def exit(self):

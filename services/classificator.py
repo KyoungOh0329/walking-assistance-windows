@@ -9,18 +9,11 @@ class classificator:
 
         self.transform = self.config["classificator"]["transform"]
 
-        if torch.cuda.is_available() and self.config["gpu"]:
-            self.device = torch.device("cuda")
-        elif torch.backends.mps.is_available() and self.config["gpu"]:
-            self.device = torch.device("mps")
-        else:
-            self.device = torch.device("cpu")
-
-        self.messenger.logger().info(f"Device: {self.device}")
-
         self.model = self.config["classificator"]["cnn"]
         self.model.load_state_dict(
-            torch.load(self.config["classificator"]["model"], map_location=self.device)
+            torch.load(
+                self.config["classificator"]["model"], map_location=torch.device("cpu")
+            )
         )
 
         self.model.eval()

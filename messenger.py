@@ -6,6 +6,7 @@ from glob import glob
 from io import BytesIO
 
 from gtts import gTTS
+from threading import Thread
 from string import punctuation
 from pydub import AudioSegment
 from pydub.playback import _play_with_simpleaudio
@@ -23,9 +24,6 @@ class messenger:
         self.LOGGER = logging.getLogger()
 
         self.playbacks = []
-
-    def logger(self):
-        return self.LOGGER
 
     def info(self, msg, force=False):
         caller = inspect.currentframe().f_back.f_globals["__name__"]
@@ -123,8 +121,8 @@ class messenger:
         if self.isPlaying():
             if wait is not None:
                 time.sleep(wait)
-                self.playbacks[-1].wait_done()
-                self.playbacks = []
+            self.playbacks[-1].wait_done()
+            self.playbacks = []
 
     def forceStop(self):
         if self.isPlaying():
